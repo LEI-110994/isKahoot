@@ -1,6 +1,7 @@
 package iskahoot.model;
 
 import java.io.Serializable;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Represents a player in the IsKahoot game
@@ -8,25 +9,25 @@ import java.io.Serializable;
 public class Player implements Serializable {
     private final String username;
     private final String teamCode;
-    private int score;
-    private int questionsAnswered;
-    private int correctAnswers;
+    private final AtomicInteger score;
+    private final AtomicInteger questionsAnswered;
+    private final AtomicInteger correctAnswers;
     
     public Player(String username, String teamCode) {
         this.username = username;
         this.teamCode = teamCode;
-        this.score = 0;
-        this.questionsAnswered = 0;
-        this.correctAnswers = 0;
+        this.score = new AtomicInteger(0);
+        this.questionsAnswered = new AtomicInteger(0);
+        this.correctAnswers = new AtomicInteger(0);
     }
     
     public void addScore(int points) {
-        this.score += points;
-        this.correctAnswers++;
+        this.score.addAndGet(points);
+        this.correctAnswers.incrementAndGet();
     }
     
     public void incrementQuestionsAnswered() {
-        this.questionsAnswered++;
+        this.questionsAnswered.incrementAndGet();
     }
     
     // Getters and setters
@@ -39,32 +40,32 @@ public class Player implements Serializable {
     }
     
     public int getScore() {
-        return score;
+        return score.get();
     }
     
     public void setScore(int score) {
-        this.score = score;
+        this.score.set(score);
     }
     
     public int getQuestionsAnswered() {
-        return questionsAnswered;
+        return questionsAnswered.get();
     }
     
     public int getCorrectAnswers() {
-        return correctAnswers;
+        return correctAnswers.get();
     }
     
     public double getAccuracy() {
-        if (questionsAnswered == 0) {
+        if (questionsAnswered.get() == 0) {
             return 0.0;
         }
-        return (double) correctAnswers / questionsAnswered * 100.0;
+        return (double) correctAnswers.get() / questionsAnswered.get() * 100.0;
     }
     
     @Override
     public String toString() {
         return String.format("%s (Team: %s) - Score: %d, Accuracy: %.1f%%", 
-                           username, teamCode, score, getAccuracy());
+                           username, teamCode, score.get(), getAccuracy());
     }
     
     @Override

@@ -747,18 +747,21 @@ public class GameGUI extends JFrame {
     }
     
     public void handleServerMessage(Object message) {
-        // This will be expanded to handle different message types
-        if (message instanceof Question) {
-            displayQuestion((Question) message);
-        } else if (message instanceof ScoreBoard) {
-            displayScoreboard((ScoreBoard) message);
-        } else if (message instanceof Integer) {
-            updateTimer((Integer) message);
-        } else if (message instanceof String) {
-            String msg = (String) message;
-            if (msg.equals("GAME_END")) {
-                // Handle game end
+        SwingUtilities.invokeLater(() -> {
+            if (message instanceof Question) {
+                displayQuestion((Question) message);
+            } else if (message instanceof ScoreBoard) {
+                displayScoreboard((ScoreBoard) message);
+            } else if (message instanceof Integer) {
+                updateTimer((Integer) message);
+            } else if (message instanceof String) {
+                String msg = (String) message;
+                if (msg.equals("GAME_END")) {
+                    // You might want to get the final scoreboard from the client/server
+                    // For now, we'll assume the last received scoreboard is the final one.
+                    // showGameEnd(lastScoreBoard); 
+                }
             }
-        }
+        });
     }
 }

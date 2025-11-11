@@ -1,6 +1,7 @@
 package iskahoot.model;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -13,7 +14,7 @@ public class ScoreBoard implements Serializable {
     private final long timestamp;
     
     public ScoreBoard(List<Team> teams, int currentQuestion, int totalQuestions) {
-        this.teams = teams;
+        this.teams = new ArrayList<>(teams);
         this.currentQuestion = currentQuestion;
         this.totalQuestions = totalQuestions;
         this.timestamp = System.currentTimeMillis();
@@ -55,7 +56,7 @@ public class ScoreBoard implements Serializable {
     
     // Getters
     public List<Team> getTeams() {
-        return teams;
+        return new ArrayList<>(teams);
     }
     
     public int getCurrentQuestion() {
@@ -74,6 +75,7 @@ public class ScoreBoard implements Serializable {
         if (teams.isEmpty()) {
             return null;
         }
-        return teams.get(0); // Assuming teams are sorted by score
+        // Assuming teams are sorted by score in descending order
+        return teams.get(0);
     }
 }

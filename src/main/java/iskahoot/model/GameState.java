@@ -2,6 +2,7 @@ package iskahoot.model;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Represents the state of a game session
@@ -14,10 +15,10 @@ public class GameState {
     private final int totalQuestions;
     
     // Game progress
-    private int currentQuestionIndex;
-    private Question currentQuestion;
-    private boolean gameStarted;
-    private boolean gameEnded;
+    private volatile int currentQuestionIndex;
+    private volatile Question currentQuestion;
+    private volatile boolean gameStarted;
+    private volatile boolean gameEnded;
     
     // Players and teams
     private final Map<String, Player> players; // username -> Player
@@ -27,7 +28,7 @@ public class GameState {
     // Current round data
     private final Map<String, Integer> currentAnswers; // username -> answerIndex
     private final Set<String> answeredPlayers;
-    private boolean roundActive;
+    private volatile boolean roundActive;
     
     // Questions
     private List<Question> questions;
@@ -50,7 +51,7 @@ public class GameState {
         this.currentAnswers = new ConcurrentHashMap<>();
         this.answeredPlayers = ConcurrentHashMap.newKeySet();
         
-        this.questions = new ArrayList<>();
+        this.questions = new CopyOnWriteArrayList<>();
         this.random = new Random();
     }
     
@@ -61,13 +62,15 @@ public class GameState {
         }
         
         // Check if team exists or can be created
-        Team team = teams.get(teamCode);
-        if (team == null) {
+        Team team = teams.computeIfAbsent(teamCode, k -> {
             if (teams.size() >= maxTeams) {
-                return false; // Too many teams
+                return null;
             }
-            team = new Team(teamCode);
-            teams.put(teamCode, team);
+            return new Team(k);
+        });
+
+        if (team == null) {
+            return false; // Max teams reached
         }
         
         // Check if team has space
@@ -77,7 +80,9 @@ public class GameState {
         
         // Add player
         Player player = new Player(username, teamCode);
-        players.put(username, player);
+        if (players.putIfAbsent(username, player) != null) {
+            return false; // Player already exists
+        }
         team.addPlayer(player);
         playerToTeam.put(username, teamCode);
         
@@ -105,19 +110,11 @@ public class GameState {
         }
         
         gameStarted = true;
-        selectRandomQuestions();
         currentQuestionIndex = 0;
     }
     
-    private void selectRandomQuestions() {
-        Collections.shuffle(questions, random);
-        if (questions.size() > totalQuestions) {
-            questions = questions.subList(0, totalQuestions);
-        }
-    }
-    
     // Question management
-    public synchronized Question getCurrentQuestion() {
+    public Question getCurrentQuestion() {
         if (currentQuestionIndex < questions.size()) {
             currentQuestion = questions.get(currentQuestionIndex);
             return currentQuestion;
@@ -135,18 +132,19 @@ public class GameState {
         roundActive = true;
     }
     
-    public synchronized boolean submitAnswer(String username, int answerIndex) {
-        if (!roundActive || answeredPlayers.contains(username)) {
+    public boolean submitAnswer(String username, int answerIndex) {
+        if (!roundActive) {
             return false;
         }
         
-        currentAnswers.put(username, answerIndex);
-        answeredPlayers.add(username);
-        
-        return true;
+        if (answeredPlayers.add(username)) {
+            currentAnswers.put(username, answerIndex);
+            return true;
+        }
+        return false;
     }
     
-    public synchronized boolean isRoundComplete() {
+    public boolean isRoundComplete() {
         return answeredPlayers.size() >= players.size();
     }
     
@@ -179,13 +177,6 @@ public class GameState {
                 
                 if (answer == correctAnswer) {
                     player.addScore(basePoints);
-                    
-                    // Add to team score
-                    String teamCode = playerToTeam.get(username);
-                    Team team = teams.get(teamCode);
-                    if (team != null) {
-                        team.addScore(basePoints);
-                    }
                 }
             }
         }
@@ -200,7 +191,7 @@ public class GameState {
         return true;
     }
     
-    public synchronized ScoreBoard getScoreBoard() {
+    public ScoreBoard getScoreBoard() {
         List<Team> sortedTeams = new ArrayList<>(teams.values());
         sortedTeams.sort((t1, t2) -> Integer.compare(t2.getScore(), t1.getScore()));
         
@@ -219,7 +210,13 @@ public class GameState {
     
     // Question management
     public void setQuestions(List<Question> questions) {
-        this.questions = new ArrayList<>(questions);
+        List<Question> shuffledQuestions = new ArrayList<>(questions);
+        Collections.shuffle(shuffledQuestions, random);
+        if (shuffledQuestions.size() > totalQuestions) {
+            this.questions = new CopyOnWriteArrayList<>(shuffledQuestions.subList(0, totalQuestions));
+        } else {
+            this.questions = new CopyOnWriteArrayList<>(shuffledQuestions);
+        }
     }
     
     public void addQuestion(Question question) {

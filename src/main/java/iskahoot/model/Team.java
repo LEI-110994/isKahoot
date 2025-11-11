@@ -3,31 +3,22 @@ package iskahoot.model;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Represents a team in the IsKahoot game
  */
 public class Team implements Serializable {
     private final String teamCode;
-    private List<Player> players;
-    private int score;
+    private final CopyOnWriteArrayList<Player> players;
     
     public Team(String teamCode) {
         this.teamCode = teamCode;
-        this.players = new ArrayList<>();
-        this.score = 0;
+        this.players = new CopyOnWriteArrayList<>();
     }
     
     public boolean addPlayer(Player player) {
-        if (!players.contains(player)) {
-            players.add(player);
-            return true;
-        }
-        return false;
-    }
-    
-    public void addScore(int points) {
-        this.score += points;
+        return players.addIfAbsent(player);
     }
     
     public int getPlayerCount() {
@@ -38,7 +29,7 @@ public class Team implements Serializable {
         return players.size() >= maxPlayersPerTeam;
     }
     
-    public int getTotalIndividualScore() {
+    public int getScore() {
         return players.stream().mapToInt(Player::getScore).sum();
     }
     
@@ -51,18 +42,10 @@ public class Team implements Serializable {
         return new ArrayList<>(players);
     }
     
-    public int getScore() {
-        return score;
-    }
-    
-    public void setScore(int score) {
-        this.score = score;
-    }
-    
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("Team ").append(teamCode).append(" - Score: ").append(score).append("\n");
+        sb.append("Team ").append(teamCode).append(" - Score: ").append(getScore()).append("\n");
         for (Player player : players) {
             sb.append("  ").append(player.toString()).append("\n");
         }
