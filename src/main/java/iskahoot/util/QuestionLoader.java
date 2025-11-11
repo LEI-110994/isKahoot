@@ -2,9 +2,13 @@ package iskahoot.util;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonSyntaxException;
 import iskahoot.model.Question;
 
-import java.io.*;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Reader;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,9 +18,18 @@ import java.util.List;
 public class QuestionLoader {
     private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
-    // Private wrapper class to match the JSON structure {"questions": [...]}
+    // Wrapper classes to match possible JSON structures
     private static class QuestionsWrapper {
         List<Question> questions;
+    }
+
+    private static class Quiz {
+        String name;
+        List<Question> questions;
+    }
+
+    private static class QuizzesWrapper {
+        List<Quiz> quizzes;
     }
 
     /**
@@ -33,15 +46,48 @@ public class QuestionLoader {
 
     /**
      * Load questions from a Reader (useful for resources).
+     * It tries to parse two possible formats.
      * @param reader Reader containing JSON data.
      * @return List of Question objects.
      */
     public static List<Question> loadQuestionsFromReader(Reader reader) {
-        QuestionsWrapper wrapper = gson.fromJson(reader, QuestionsWrapper.class);
-        if (wrapper == null || wrapper.questions == null) {
-            return new ArrayList<>();
+        StringBuilder sb = new StringBuilder();
+        try {
+            int c;
+            while ((c = reader.read()) != -1) {
+                sb.append((char) c);
+            }
+        } catch (IOException e) {
+            // Or handle more gracefully
+            throw new RuntimeException("Could not read from reader", e);
         }
-        return wrapper.questions;
+        String json = sb.toString();
+
+        // Try parsing as {"questions": [...]}
+        try {
+            QuestionsWrapper wrapper = gson.fromJson(json, QuestionsWrapper.class);
+            if (wrapper != null && wrapper.questions != null) {
+                return wrapper.questions;
+            }
+        } catch (JsonSyntaxException e) {
+            // Ignore and try the other format
+        }
+
+        // Try parsing as {"quizzes": [{"questions": [...]}]}
+        try {
+            QuizzesWrapper wrapper = gson.fromJson(json, QuizzesWrapper.class);
+            if (wrapper != null && wrapper.quizzes != null && !wrapper.quizzes.isEmpty()) {
+                // As per spec, use the first quiz
+                Quiz firstQuiz = wrapper.quizzes.get(0);
+                if (firstQuiz != null && firstQuiz.questions != null) {
+                    return firstQuiz.questions;
+                }
+            }
+        } catch (JsonSyntaxException e) {
+            // If this also fails, the format is unsupported
+        }
+
+        return new ArrayList<>();
     }
 
     /**
@@ -50,15 +96,16 @@ public class QuestionLoader {
      * @return List of Question objects.
      */
     public static List<Question> loadQuestionsFromString(String jsonString) {
-        QuestionsWrapper wrapper = gson.fromJson(jsonString, QuestionsWrapper.class);
-        if (wrapper == null || wrapper.questions == null) {
+        try (Reader reader = new java.io.StringReader(jsonString)) {
+            return loadQuestionsFromReader(reader);
+        } catch (IOException e) {
+            // Should not happen with StringReader
             return new ArrayList<>();
         }
-        return wrapper.questions;
     }
 
     /**
-     * Save questions to a JSON file.
+     * Save questions to a JSON file in the simple {"questions": [...]} format.
      * @param questions List of questions to save.
      * @param filePath Path where to save the file.
      * @throws IOException if file cannot be written.

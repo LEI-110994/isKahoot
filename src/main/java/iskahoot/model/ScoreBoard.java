@@ -8,13 +8,13 @@ import java.util.List;
  * Represents the scoreboard for the IsKahoot game
  */
 public class ScoreBoard implements Serializable {
-    private final List<Team> teams;
+    private final List<Player> players;
     private final int currentQuestion;
     private final int totalQuestions;
     private final long timestamp;
     
-    public ScoreBoard(List<Team> teams, int currentQuestion, int totalQuestions) {
-        this.teams = new ArrayList<>(teams);
+    public ScoreBoard(List<Player> players, int currentQuestion, int totalQuestions) {
+        this.players = new ArrayList<>(players);
         this.currentQuestion = currentQuestion;
         this.totalQuestions = totalQuestions;
         this.timestamp = System.currentTimeMillis();
@@ -26,16 +26,9 @@ public class ScoreBoard implements Serializable {
         sb.append(String.format("Question %d of %d\n\n", currentQuestion, totalQuestions));
         
         int position = 1;
-        for (Team team : teams) {
-            sb.append(String.format("%d. Team %s - %d points\n", 
-                                  position++, team.getTeamCode(), team.getScore()));
-            
-            // Show individual player scores
-            for (Player player : team.getPlayers()) {
-                sb.append(String.format("   %s: %d points\n", 
-                                      player.getUsername(), player.getScore()));
-            }
-            sb.append("\n");
+        for (Player player : players) {
+            sb.append(String.format("%d. %s - %d points\n", 
+                                  position++, player.getUsername(), player.getScore()));
         }
         
         return sb.toString();
@@ -46,17 +39,17 @@ public class ScoreBoard implements Serializable {
         sb.append(String.format("Q%d/%d | ", currentQuestion, totalQuestions));
         
         int position = 1;
-        for (Team team : teams) {
+        for (Player player : players) {
             if (position > 1) sb.append(" | ");
-            sb.append(String.format("%d.%s(%d)", position++, team.getTeamCode(), team.getScore()));
+            sb.append(String.format("%d.%s(%d)", position++, player.getUsername(), player.getScore()));
         }
         
         return sb.toString();
     }
     
     // Getters
-    public List<Team> getTeams() {
-        return new ArrayList<>(teams);
+    public List<Player> getPlayers() {
+        return new ArrayList<>(players);
     }
     
     public int getCurrentQuestion() {
@@ -71,11 +64,11 @@ public class ScoreBoard implements Serializable {
         return timestamp;
     }
     
-    public Team getWinningTeam() {
-        if (teams.isEmpty()) {
+    public Player getWinningPlayer() {
+        if (players.isEmpty()) {
             return null;
         }
-        // Assuming teams are sorted by score in descending order
-        return teams.get(0);
+        // Assuming players are sorted by score in descending order
+        return players.get(0);
     }
 }
