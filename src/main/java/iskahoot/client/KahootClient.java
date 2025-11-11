@@ -39,7 +39,7 @@ public class KahootClient implements ClientInterface {
             sendConnectionInfo();
             
             // Initialize GUI
-            gui = new GameGUI(this);
+            gui = new GameGUI(this, username, teamCode);
             gui.setVisible(true);
             
             // Start listening for server messages
