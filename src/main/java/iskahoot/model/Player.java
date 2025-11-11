@@ -6,8 +6,8 @@ import java.io.Serializable;
  * Represents a player in the IsKahoot game
  */
 public class Player implements Serializable {
-    private String username;
-    private String teamCode;
+    private final String username;
+    private final String teamCode;
     private int score;
     private int questionsAnswered;
     private int correctAnswers;

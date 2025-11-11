@@ -8,7 +8,7 @@ import java.util.List;
  * Represents a team in the IsKahoot game
  */
 public class Team implements Serializable {
-    private String teamCode;
+    private final String teamCode;
     private List<Player> players;
     private int score;
     

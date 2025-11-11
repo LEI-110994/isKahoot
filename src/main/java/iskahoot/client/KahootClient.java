@@ -9,11 +9,11 @@ import java.net.*;
  * Usage: java KahootClient {IP PORT Game Team Username}
  */
 public class KahootClient implements ClientInterface {
-    private String serverIP;
-    private int serverPort;
-    private String gameCode;
-    private String teamCode;
-    private String username;
+    private final String serverIP;
+    private final int serverPort;
+    private final String gameCode;
+    private final String teamCode;
+    private final String username;
     
     private Socket socket;
     private ObjectOutputStream out;
@@ -78,6 +78,7 @@ public class KahootClient implements ClientInterface {
         }
     }
     
+    @Override
     public void sendAnswer(int answerIndex) {
         try {
             out.writeObject("ANSWER");

@@ -125,54 +125,5 @@ public class QuestionLoader {
         }
     }
     
-    /**
-     * Create a sample questions file for testing
-     * @param filePath Path where to create the sample file
-     * @throws IOException if file cannot be created
-     */
-    public static void createSampleQuestionsFile(String filePath) throws IOException {
-        List<Question> sampleQuestions = createSampleQuestions();
-        saveQuestionsToFile(sampleQuestions, filePath);
-    }
-    
-    private static List<Question> createSampleQuestions() {
-        List<Question> questions = new ArrayList<>();
-        
-        questions.add(new Question(
-            "O que é uma thread?",
-            5,
-            3,
-            new String[]{"Processo", "Aplicação", "Programa", "Processo Ligeiro"}
-        ));
-        
-        questions.add(new Question(
-            "Qual destas operações é um método bloqueante?",
-            3,
-            1,
-            new String[]{"join()", "sleep(<millis>)", "interrupted()", "wait()"}
-        ));
-        
-        questions.add(new Question(
-            "Qual é o principal problema da concorrência?",
-            4,
-            2,
-            new String[]{"Performance", "Race Conditions", "Memória", "CPU"}
-        ));
-        
-        questions.add(new Question(
-            "O que é um semáforo?",
-            3,
-            0,
-            new String[]{"Estrutura de sincronização", "Tipo de thread", "Algoritmo", "Protocolo"}
-        ));
-        
-        questions.add(new Question(
-            "Qual método é usado para sincronizar threads em Java?",
-            2,
-            1,
-            new String[]{"sync()", "synchronized", "lock()", "wait()"}
-        ));
-        
-        return questions;
-    }
+
 }

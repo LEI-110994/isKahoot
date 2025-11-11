@@ -8,10 +8,10 @@ import java.util.concurrent.ConcurrentHashMap;
  * Manages players, teams, questions, and scoring
  */
 public class GameState {
-    private String gameCode;
-    private int maxTeams;
-    private int playersPerTeam;
-    private int totalQuestions;
+    private final String gameCode;
+    private final int maxTeams;
+    private final int playersPerTeam;
+    private final int totalQuestions;
     
     // Game progress
     private int currentQuestionIndex;
@@ -20,22 +20,18 @@ public class GameState {
     private boolean gameEnded;
     
     // Players and teams
-    private Map<String, Player> players; // username -> Player
-    private Map<String, Team> teams; // teamCode -> Team
-    private Map<String, String> playerToTeam; // username -> teamCode
+    private final Map<String, Player> players; // username -> Player
+    private final Map<String, Team> teams; // teamCode -> Team
+    private final Map<String, String> playerToTeam; // username -> teamCode
     
     // Current round data
-    private Map<String, Integer> currentAnswers; // username -> answerIndex
-    private Set<String> answeredPlayers;
-    private long roundStartTime;
+    private final Map<String, Integer> currentAnswers; // username -> answerIndex
+    private final Set<String> answeredPlayers;
     private boolean roundActive;
     
     // Questions
     private List<Question> questions;
-    private Random random;
-    
-    // Synchronization components (to be implemented later)
-    private Object stateLock = new Object();
+    private final Random random;
     
     public GameState(String gameCode, int maxTeams, int playersPerTeam, int totalQuestions) {
         this.gameCode = gameCode;
@@ -136,7 +132,6 @@ public class GameState {
         
         currentAnswers.clear();
         answeredPlayers.clear();
-        roundStartTime = System.currentTimeMillis();
         roundActive = true;
     }
     
@@ -178,14 +173,19 @@ public class GameState {
             int answer = entry.getValue();
             
             Player player = players.get(username);
-            if (player != null && answer == correctAnswer) {
-                player.addScore(basePoints);
+            if (player != null) {
+                // Increment questions answered for all players who submitted
+                player.incrementQuestionsAnswered();
                 
-                // Add to team score
-                String teamCode = playerToTeam.get(username);
-                Team team = teams.get(teamCode);
-                if (team != null) {
-                    team.addScore(basePoints);
+                if (answer == correctAnswer) {
+                    player.addScore(basePoints);
+                    
+                    // Add to team score
+                    String teamCode = playerToTeam.get(username);
+                    Team team = teams.get(teamCode);
+                    if (team != null) {
+                        team.addScore(basePoints);
+                    }
                 }
             }
         }

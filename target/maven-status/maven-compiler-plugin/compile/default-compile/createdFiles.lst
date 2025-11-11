@@ -2,8 +2,6 @@ iskahoot\model\Team.class
 iskahoot\model\ScoreBoard.class
 iskahoot\util\QuestionLoader.class
 iskahoot\client\gui\GameGUI.class
-iskahoot\demo\PhaseDemo$MockClient.class
-iskahoot\demo\PhaseDemo.class
 iskahoot\client\ClientInterface.class
 iskahoot\model\Question.class
 iskahoot\client\gui\GameGUI$3.class

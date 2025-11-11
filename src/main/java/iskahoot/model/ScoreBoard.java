@@ -7,10 +7,10 @@ import java.util.List;
  * Represents the scoreboard for the IsKahoot game
  */
 public class ScoreBoard implements Serializable {
-    private List<Team> teams;
-    private int currentQuestion;
-    private int totalQuestions;
-    private long timestamp;
+    private final List<Team> teams;
+    private final int currentQuestion;
+    private final int totalQuestions;
+    private final long timestamp;
     
     public ScoreBoard(List<Team> teams, int currentQuestion, int totalQuestions) {
         this.teams = teams;

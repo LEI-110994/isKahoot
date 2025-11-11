@@ -7,8 +7,6 @@ import iskahoot.model.ScoreBoard;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
@@ -18,6 +16,8 @@ import java.awt.image.BufferedImage;
  */
 public class GameGUI extends JFrame {
     private final ClientInterface client;
+    private String playerName;
+    private String teamName;
     
     // Color scheme - Kahoot-inspired colors
     private static final Color KAHOOT_BLUE = new Color(70, 23, 143);
@@ -46,6 +46,7 @@ public class GameGUI extends JFrame {
     
     // Components
     private JLabel titleLabel;
+    private JLabel playerInfoLabel;
     private JLabel questionLabel;
     private JButton[] answerButtons;
     private JLabel timerLabel;
@@ -57,10 +58,18 @@ public class GameGUI extends JFrame {
     // Game state
     private boolean canAnswer = false;
     private Timer pulseTimer;
-    private int currentTimerValue = 30;
+    private int currentTimerValue = 5;
+    private Question currentQuestion;
+    private int selectedAnswerIndex = -1;
     
     public GameGUI(ClientInterface client) {
+        this(client, "Player", "Team");
+    }
+    
+    public GameGUI(ClientInterface client, String playerName, String teamName) {
         this.client = client;
+        this.playerName = playerName;
+        this.teamName = teamName;
         initializeComponents();
         setupLayout();
         setupEventHandlers();
@@ -142,7 +151,17 @@ public class GameGUI extends JFrame {
         titleLabel.setForeground(Color.WHITE);
         titleLabel.setBorder(new EmptyBorder(10, 0, 10, 0));
         
-        headerPanel.add(titleLabel, BorderLayout.CENTER);
+        playerInfoLabel = new JLabel(String.format("Player: %s | Team: %s", playerName, teamName), SwingConstants.CENTER);
+        playerInfoLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        playerInfoLabel.setForeground(KAHOOT_YELLOW);
+        playerInfoLabel.setBorder(new EmptyBorder(5, 0, 5, 0));
+        
+        JPanel headerContent = new JPanel(new BorderLayout());
+        headerContent.setOpaque(false);
+        headerContent.add(titleLabel, BorderLayout.CENTER);
+        headerContent.add(playerInfoLabel, BorderLayout.SOUTH);
+        
+        headerPanel.add(headerContent, BorderLayout.CENTER);
     }
     
     private void createQuestionPanel() {
@@ -218,15 +237,23 @@ public class GameGUI extends JFrame {
                     g2d.drawString(letter, 20, 35);
                     
                     // Draw answer text
-                    g2d.setFont(new Font("Arial", Font.PLAIN, 16));
+                    g2d.setFont(new Font("Arial", Font.PLAIN, 14));
                     String text = getText();
                     if (text != null && !text.isEmpty() && !text.startsWith("Option")) {
                         // Remove HTML tags for display
                         text = text.replaceAll("<[^>]*>", "");
-                        if (text.length() > 30) {
-                            text = text.substring(0, 27) + "...";
+                        // Wrap text if too long
+                        if (text.length() > 40) {
+                            String line1 = text.substring(0, Math.min(40, text.length()));
+                            String line2 = text.length() > 40 ? text.substring(40, Math.min(80, text.length())) : "";
+                            if (text.length() > 80) line2 += "...";
+                            g2d.drawString(line1, 60, 28);
+                            if (!line2.isEmpty()) {
+                                g2d.drawString(line2, 60, 45);
+                            }
+                        } else {
+                            g2d.drawString(text, 60, 35);
                         }
-                        g2d.drawString(text, 60, 35);
                     }
                 }
             };
@@ -263,8 +290,8 @@ public class GameGUI extends JFrame {
         timerLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         
         // Progress bar
-        timerProgressBar = new JProgressBar(0, 30);
-        timerProgressBar.setValue(30);
+        timerProgressBar = new JProgressBar(0, 5);
+        timerProgressBar.setValue(5);
         timerProgressBar.setStringPainted(false);
         timerProgressBar.setPreferredSize(new Dimension(200, 10));
         timerProgressBar.setMaximumSize(new Dimension(200, 10));
@@ -405,13 +432,15 @@ public class GameGUI extends JFrame {
     
     private void selectAnswer(int answerIndex) {
         canAnswer = false;
+        this.selectedAnswerIndex = answerIndex;
         
-        // Animate button selection
-        animateButtonSelection(answerIndex);
+        // Disable all buttons
+        for (JButton button : answerButtons) {
+            button.setEnabled(false);
+        }
         
         // Send answer to server
         client.sendAnswer(answerIndex);
-        statusLabel.setText("✓ Answer sent! Waiting for results...");
         
         // Stop pulse animation
         if (pulseTimer.isRunning()) {
@@ -419,15 +448,30 @@ public class GameGUI extends JFrame {
         }
     }
     
-    private void animateButtonSelection(int selectedIndex) {
+    public void showAnswerFeedback(boolean isCorrect, int correctAnswerIndex) {
+        SwingUtilities.invokeLater(() -> {
+            // Update status with feedback
+            if (isCorrect) {
+                statusLabel.setText("Correct! +" + (currentQuestion != null ? currentQuestion.getPoints() : 0) + " points");
+            } else {
+                statusLabel.setText("Wrong answer! Correct was: " + (char)('A' + correctAnswerIndex));
+            }
+            
+            // Animate button selection with correct/wrong feedback
+            animateButtonSelection(selectedAnswerIndex, isCorrect, correctAnswerIndex);
+        });
+    }
+    
+    private void animateButtonSelection(int selectedIndex, boolean isCorrect, int correctIndex) {
         // Disable all buttons and show selection
         for (int i = 0; i < answerButtons.length; i++) {
             answerButtons[i].setEnabled(false);
             
             if (i == selectedIndex) {
-                // Animate selected button
+                // Animate selected button with correct/wrong color
                 Timer selectionTimer = new Timer(100, null);
                 final int[] pulseCount = {0};
+                final Color feedbackColor = isCorrect ? KAHOOT_GREEN : KAHOOT_RED;
                 
                 selectionTimer.addActionListener(e -> {
                     if (pulseCount[0] < 6) {
@@ -435,18 +479,27 @@ public class GameGUI extends JFrame {
                         if (pulseCount[0] % 2 == 0) {
                             answerButtons[selectedIndex].setBackground(Color.WHITE);
                         } else {
-                            answerButtons[selectedIndex].setBackground(ANSWER_COLORS[selectedIndex]);
+                            answerButtons[selectedIndex].setBackground(feedbackColor);
                         }
                         answerButtons[selectedIndex].repaint();
                         pulseCount[0]++;
                     } else {
-                        // Final state - keep selected color
-                        answerButtons[selectedIndex].setBackground(ANSWER_COLORS[selectedIndex].brighter());
+                        // Final state - show feedback color
+                        answerButtons[selectedIndex].setBackground(feedbackColor);
                         answerButtons[selectedIndex].repaint();
                         selectionTimer.stop();
                     }
                 });
                 selectionTimer.start();
+            } else if (i == correctIndex && !isCorrect) {
+                // Highlight the correct answer if user was wrong
+                final int correctButtonIndex = i;
+                Timer correctTimer = new Timer(600, e -> {
+                    answerButtons[correctButtonIndex].setBackground(KAHOOT_GREEN);
+                    answerButtons[correctButtonIndex].repaint();
+                });
+                correctTimer.setRepeats(false);
+                correctTimer.start();
             } else {
                 // Fade out non-selected buttons
                 answerButtons[i].setBackground(Color.LIGHT_GRAY);
@@ -457,10 +510,16 @@ public class GameGUI extends JFrame {
     
     public void displayQuestion(Question question) {
         SwingUtilities.invokeLater(() -> {
-            // Update question text with animation
+            // Store current question
+            this.currentQuestion = question;
+            this.selectedAnswerIndex = -1;
+            
+            // Update question text with points
             String questionText = question.getQuestion();
+            int points = question.getPoints();
             questionLabel.setText("<html><div style='text-align: center; padding: 10px;'>" + 
-                                questionText + "</div></html>");
+                                questionText + "<br><span style='color: #FF7700; font-size: 14px;'>" +
+                                points + " points</span></div></html>");
             
             // Animate question appearance
             animateQuestionAppearance();
@@ -482,7 +541,7 @@ public class GameGUI extends JFrame {
             }
             
             canAnswer = true;
-            statusLabel.setText("🎯 Choose your answer!");
+            statusLabel.setText("Choose your answer!");
         });
     }
     
@@ -533,14 +592,14 @@ public class GameGUI extends JFrame {
             timerLabel.setText(String.valueOf(seconds));
             timerProgressBar.setValue(seconds);
             
-            // Update colors based on time remaining
-            if (seconds <= 5) {
+            // Update colors based on time remaining (5 second timer)
+            if (seconds <= 2) {
                 timerLabel.setForeground(KAHOOT_RED);
                 timerProgressBar.setForeground(KAHOOT_RED);
                 if (!pulseTimer.isRunning()) {
                     pulseTimer.start();
                 }
-            } else if (seconds <= 10) {
+            } else if (seconds <= 3) {
                 timerLabel.setForeground(KAHOOT_ORANGE);
                 timerProgressBar.setForeground(KAHOOT_ORANGE);
                 if (pulseTimer.isRunning()) {
@@ -554,8 +613,8 @@ public class GameGUI extends JFrame {
                 }
             }
             
-            // Add urgency animation for last 3 seconds
-            if (seconds <= 3 && seconds > 0) {
+            // Add urgency animation for last 2 seconds
+            if (seconds <= 2 && seconds > 0) {
                 Timer urgencyTimer = new Timer(200, e -> {
                     Font currentFont = timerLabel.getFont();
                     if (currentFont.getSize() == 48) {
@@ -583,22 +642,20 @@ public class GameGUI extends JFrame {
     
     private String formatScoreboardWithEmojis(ScoreBoard scoreBoard) {
         StringBuilder sb = new StringBuilder();
-        sb.append("🏆 LEADERBOARD 🏆\n");
-        sb.append("═══════════════════════════\n");
+        sb.append("LEADERBOARD\n");
+        sb.append("===========================\n");
         sb.append(String.format("Question %d of %d\n\n", 
                   scoreBoard.getCurrentQuestion(), scoreBoard.getTotalQuestions()));
         
-        String[] medals = {"🥇", "🥈", "🥉", "🏅"};
         int position = 1;
         
         for (var team : scoreBoard.getTeams()) {
-            String medal = position <= medals.length ? medals[position - 1] : "🔸";
-            sb.append(String.format("%s %d. Team %s - %d points\n", 
-                      medal, position, team.getTeamCode(), team.getScore()));
+            sb.append(String.format("%d. Team %s - %d points\n", 
+                      position, team.getTeamCode(), team.getScore()));
             
             // Show individual player scores with indentation
             for (var player : team.getPlayers()) {
-                sb.append(String.format("   👤 %s: %d pts\n", 
+                sb.append(String.format("   %s: %d pts\n", 
                           player.getUsername(), player.getScore()));
             }
             sb.append("\n");
@@ -637,8 +694,8 @@ public class GameGUI extends JFrame {
             
             // Update UI for game end
             questionLabel.setText("<html><div style='text-align: center; color: #FF6B35;'>" +
-                                "🎉 GAME OVER! 🎉</div></html>");
-            statusLabel.setText("🏁 Final Results - Thanks for playing!");
+                                "GAME OVER!</div></html>");
+            statusLabel.setText("Final Results - Thanks for playing!");
             timerLabel.setText("END");
             timerLabel.setForeground(KAHOOT_BLUE);
             timerProgressBar.setValue(0);
@@ -654,7 +711,7 @@ public class GameGUI extends JFrame {
         String winnerMessage;
         if (!finalScores.getTeams().isEmpty()) {
             var winningTeam = finalScores.getWinningTeam();
-            winnerMessage = String.format("🏆 Congratulations to Team %s! 🏆\n" +
+            winnerMessage = String.format("Congratulations to Team %s!\n" +
                                         "Final Score: %d points\n\n" +
                                         "Thanks for playing IsKahoot!",
                                         winningTeam.getTeamCode(), 
