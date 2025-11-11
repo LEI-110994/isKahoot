@@ -1,0 +1,70 @@
+{
+  "questions": [
+    {
+      "question": "O que é uma thread?",
+      "points": 5,
+      "correct": 3,
+      "options": [
+        "Processo",
+        "Aplicação",
+        "Programa",
+        "Processo Ligeiro"
+      ]
+    },
+    {
+      "question": "Qual destas operações é um método bloqueante?",
+      "points": 3,
+      "correct": 1,
+      "options": [
+        "join()",
+        "sleep(<millis>)",
+        "interrupted()",
+        "wait()"
+      ]
+    },
+    {
+      "question": "O que é um semáforo em programação concorrente?",
+      "points": 4,
+      "correct": 0,
+      "options": [
+        "Estrutura de sincronização que controla acesso a recursos",
+        "Tipo especial de thread",
+        "Algoritmo de ordenação",
+        "Protocolo de rede"
+      ]
+    },
+    {
+      "question": "Qual palavra-chave é usada para sincronização em Java?",
+      "points": 2,
+      "correct": 1,
+      "options": [
+        "sync",
+        "synchronized",
+        "lock",
+        "atomic"
+      ]
+    },
+    {
+      "question": "O que acontece quando uma thread chama wait()?",
+      "points": 3,
+      "correct": 2,
+      "options": [
+        "A thread termina",
+        "A thread continua executando",
+        "A thread bloqueia até ser notificada",
+        "A thread reinicia"
+      ]
+    },
+    {
+      "question": "Qual é o principal problema das race conditions?",
+      "points": 4,
+      "correct": 1,
+      "options": [
+        "Lentidão na execução",
+        "Resultados inconsistentes devido a acesso concorrente",
+        "Uso excessivo de memória",
+        "Deadlock garantido"
+      ]
+    }
+  ]
+}
