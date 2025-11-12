@@ -2,7 +2,6 @@ package iskahoot.util;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonSyntaxException;
 import iskahoot.model.Question;
 
 import java.io.FileReader;
@@ -21,15 +20,6 @@ public class QuestionLoader {
     // Wrapper classes to match possible JSON structures
     private static class QuestionsWrapper {
         List<Question> questions;
-    }
-
-    private static class Quiz {
-        String name;
-        List<Question> questions;
-    }
-
-    private static class QuizzesWrapper {
-        List<Quiz> quizzes;
     }
 
     /**
@@ -58,33 +48,14 @@ public class QuestionLoader {
                 sb.append((char) c);
             }
         } catch (IOException e) {
-            // Or handle more gracefully
             throw new RuntimeException("Could not read from reader", e);
         }
         String json = sb.toString();
 
-        // Try parsing as {"questions": [...]}
-        try {
-            QuestionsWrapper wrapper = gson.fromJson(json, QuestionsWrapper.class);
-            if (wrapper != null && wrapper.questions != null) {
-                return wrapper.questions;
-            }
-        } catch (JsonSyntaxException e) {
-            // Ignore and try the other format
-        }
-
-        // Try parsing as {"quizzes": [{"questions": [...]}]}
-        try {
-            QuizzesWrapper wrapper = gson.fromJson(json, QuizzesWrapper.class);
-            if (wrapper != null && wrapper.quizzes != null && !wrapper.quizzes.isEmpty()) {
-                // As per spec, use the first quiz
-                Quiz firstQuiz = wrapper.quizzes.get(0);
-                if (firstQuiz != null && firstQuiz.questions != null) {
-                    return firstQuiz.questions;
-                }
-            }
-        } catch (JsonSyntaxException e) {
-            // If this also fails, the format is unsupported
+        // Parse as {"questions": [...]}
+        QuestionsWrapper wrapper = gson.fromJson(json, QuestionsWrapper.class);
+        if (wrapper != null && wrapper.questions != null) {
+            return wrapper.questions;
         }
 
         return new ArrayList<>();
