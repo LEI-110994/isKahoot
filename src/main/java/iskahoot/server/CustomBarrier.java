@@ -23,13 +23,11 @@ public class CustomBarrier {
         lock.lock();
         try {
             if (broken) {
-                // If already broken (timeout happened), just return
                 return;
             }
 
             count--;
             if (count == 0) {
-                // All parties arrived
                 if (barrierAction != null) {
                     barrierAction.run();
                 }
@@ -38,8 +36,7 @@ public class CustomBarrier {
                 long nanos = TimeUnit.MILLISECONDS.toNanos(timeoutMillis);
                 while (count > 0 && !broken) {
                     if (nanos <= 0) {
-                        // Timeout
-                        breakTimeout(); 
+                        breakTimeout();
                         break;
                     }
                     nanos = trip.awaitNanos(nanos);
@@ -52,14 +49,12 @@ public class CustomBarrier {
 
     private void breakTimeout() {
         broken = true;
-        // Timeout happened, execute action anyway if needed?
-        // Requirement says: "Se este tempo de facto expirar, todos as chamadas aos métodos await devem ser desbloqueadas, e o cálculo das pontuações deve ser feito através da funcionalidade barrierAction."
         if (barrierAction != null) {
             barrierAction.run();
         }
         trip.signalAll();
     }
-    
+
     public void reset() {
         lock.lock();
         try {

@@ -26,7 +26,6 @@ public class Server {
     }
 
     public void start() {
-        // Load questions
         try {
             availableQuestions = QuestionLoader.loadQuestionsFromFile("resources/questions.json");
             System.out.println("Loaded " + availableQuestions.size() + " questions.");
@@ -35,11 +34,9 @@ public class Server {
             return;
         }
 
-        // Start connection listener
         new Thread(this::listenForConnections).start();
         System.out.println("Server started on port " + PORT);
 
-        // TUI Loop
         Scanner scanner = new Scanner(System.in);
         System.out.println("Commands: new <playersPerTeam> <numQuestions>, start <gameCode>, games, exit");
 
@@ -108,7 +105,6 @@ public class Server {
     private void createNewGame(int numTeams, int playersPerTeam, int numQuestions) {
         String gameCode = generateGameCode();
         GameState game = new GameState(gameCode, numTeams, playersPerTeam, numQuestions);
-        // We might need to extend GameState to store playersPerTeam
         game.setQuestions(availableQuestions);
         activeGames.put(gameCode, game);
         System.out.println("Created game " + gameCode + " for " + numTeams + " teams with " + playersPerTeam
@@ -116,7 +112,7 @@ public class Server {
     }
 
     private String generateGameCode() {
-        return String.valueOf((int) (Math.random() * 9000) + 1000); // Simple 4 digit code
+        return String.valueOf((int) (Math.random() * 9000) + 1000);
     }
 
     private void listGames() {

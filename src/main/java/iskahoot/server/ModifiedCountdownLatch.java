@@ -10,7 +10,7 @@ public class ModifiedCountdownLatch {
     public ModifiedCountdownLatch(int bonusFactor, int bonusCount, int waitPeriod, int count) {
         this.bonusFactor = bonusFactor;
         this.bonusCount = bonusCount;
-        this.waitPeriodMillis = waitPeriod * 1000L; // waitPeriod is in seconds as per usage context usually
+        this.waitPeriodMillis = waitPeriod * 1000L;
         this.count = count;
         this.currentBonusCount = 0;
     }
@@ -22,8 +22,7 @@ public class ModifiedCountdownLatch {
                 notifyAll();
             }
         }
-        
-        // Bonus calculation logic: First 'bonusCount' callers get 'bonusFactor'
+
         if (currentBonusCount < bonusCount) {
             currentBonusCount++;
             return bonusFactor;
@@ -34,7 +33,7 @@ public class ModifiedCountdownLatch {
     public synchronized void await() throws InterruptedException {
         long start = System.currentTimeMillis();
         long remaining = waitPeriodMillis;
-        
+
         while (count > 0 && remaining > 0) {
             wait(remaining);
             remaining = waitPeriodMillis - (System.currentTimeMillis() - start);

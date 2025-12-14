@@ -28,7 +28,6 @@ public class DealWithClient implements Runnable {
             out = new ObjectOutputStream(socket.getOutputStream());
             in = new ObjectInputStream(socket.getInputStream());
 
-            // 1. Wait for JoinRequest
             Object msg = in.readObject();
             if (msg instanceof JoinRequest) {
                 handleJoin((JoinRequest) msg);
@@ -38,7 +37,6 @@ public class DealWithClient implements Runnable {
                 return;
             }
 
-            // 2. Loop for answers
             while (running && !socket.isClosed()) {
                 try {
                     Object obj = in.readObject();
@@ -46,7 +44,6 @@ public class DealWithClient implements Runnable {
                         handleAnswer((AnswerMessage) obj);
                     }
                 } catch (IOException e) {
-                    // Client disconnected
                     running = false;
                 }
             }
@@ -70,12 +67,10 @@ public class DealWithClient implements Runnable {
             return;
         }
 
-        // Logic to add player to GameState and register this connection
-        // We need to update GameState to accept DealWithClient or a listener
         boolean added = g.addPlayer(req.getUsername(), req.getTeamName(), this);
         if (added) {
             this.game = g;
-            this.player = new Player(req.getUsername()); // Ideally GameState manages the Player object
+            this.player = new Player(req.getUsername());
             send(new JoinResponse(true, "Joined game " + req.getGameCode()));
             System.out.println("Player " + req.getUsername() + " joined game " + req.getGameCode());
         } else {
@@ -93,7 +88,7 @@ public class DealWithClient implements Runnable {
         try {
             out.writeObject(msg);
             out.flush();
-            out.reset(); // Important to prevent object caching issues
+            out.reset();
         } catch (IOException e) {
             running = false;
         }
@@ -102,7 +97,9 @@ public class DealWithClient implements Runnable {
     private void close() {
         running = false;
         try {
-            if (socket != null) socket.close();
-        } catch (IOException e) { /* ignored */ }
+            if (socket != null)
+                socket.close();
+        } catch (IOException e) {
+        }
     }
 }

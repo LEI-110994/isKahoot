@@ -36,11 +36,9 @@ public class Client {
             out = new ObjectOutputStream(socket.getOutputStream());
             in = new ObjectInputStream(socket.getInputStream());
 
-            // Send Join Request
             out.writeObject(new JoinRequest(username, teamName, gameCode));
             out.flush();
 
-            // Wait for response
             Object response = in.readObject();
             if (response instanceof JoinResponse) {
                 JoinResponse jr = (JoinResponse) response;
@@ -54,14 +52,12 @@ public class Client {
                 return;
             }
 
-            // Init GUI
             SwingUtilities.invokeAndWait(() -> {
                 gui = new GameGUI(username);
                 gui.setVisible(true);
                 gui.setOnAnswerSelected(this::sendAnswer);
             });
 
-            // Message Loop
             while (running) {
                 Object msg = in.readObject();
                 handleMessage(msg);
@@ -73,18 +69,21 @@ public class Client {
                 JOptionPane.showMessageDialog(gui, "Connection lost: " + e.getMessage());
             }
         } finally {
-            try { if (socket != null) socket.close(); } catch (IOException e) {}
+            try {
+                if (socket != null)
+                    socket.close();
+            } catch (IOException e) {
+            }
         }
     }
 
     private void handleMessage(Object msg) {
         if (msg instanceof GameStartMessage) {
-            // Game started
             System.out.println("Game Started!");
         } else if (msg instanceof QuestionMessage) {
             QuestionMessage qm = (QuestionMessage) msg;
             gui.displayQuestion(qm.getQuestion());
-            startTimer(30); // 30s timer
+            startTimer(30);
         } else if (msg instanceof ScoreBoardMessage) {
             ScoreBoardMessage sbm = (ScoreBoardMessage) msg;
             gui.displayScoreboard(sbm.getScoreBoard());
@@ -92,25 +91,24 @@ public class Client {
                 gui.showGameEnd(sbm.getScoreBoard());
                 running = false;
             } else {
-                // Round end, show feedback? 
-                // We don't have exact correctness info here unless we track it or server sends it.
-                // The ScoreBoard has updated scores.
-                // GUI can infer logic or just show scoreboard.
-                gui.showAnswerFeedback(false, -1); // Reset or show generic
+                gui.showAnswerFeedback(false, -1);
             }
         }
     }
 
     private Timer timer;
+
     private void startTimer(int seconds) {
-        if (timer != null) timer.stop();
-        final int[] timeLeft = {seconds};
+        if (timer != null)
+            timer.stop();
+        final int[] timeLeft = { seconds };
         timer = new Timer(1000, e -> {
-            if (gui != null) gui.updateTimer(timeLeft[0]);
+            if (gui != null)
+                gui.updateTimer(timeLeft[0]);
             if (timeLeft[0] > 0) {
                 timeLeft[0]--;
             } else {
-                ((Timer)e.getSource()).stop();
+                ((Timer) e.getSource()).stop();
             }
         });
         timer.start();
@@ -127,11 +125,8 @@ public class Client {
     }
 
     public static void main(String[] args) {
-        // Usage: java iskahoot.client.Client IP PORT Jogo Equipa Username
         if (args.length != 5) {
             System.out.println("Usage: java iskahoot.client.Client <IP> <PORT> <GameCode> <TeamName> <Username>");
-            // For testing purposes, we can default or prompt
-            // return;
         }
 
         String ip = args.length > 0 ? args[0] : "localhost";
