@@ -2,13 +2,9 @@ package iskahoot.client.gui;
 
 import iskahoot.model.Question;
 import iskahoot.model.ScoreBoard;
-import iskahoot.server.GameState;
-import iskahoot.util.QuestionLoader;
 
 import javax.swing.*;
 import java.awt.*;
-import java.io.IOException;
-import java.util.List;
 import java.util.function.Consumer;
 
 public class GameGUI extends JFrame {
@@ -124,7 +120,11 @@ public class GameGUI extends JFrame {
             if (isCorrect) {
                 statusLabel.setText("Correct! You earned " + currentQuestion.getPoints() + " points.");
             } else {
-                statusLabel.setText("Wrong! The correct answer was: " + currentQuestion.getOptions()[correctAnswerIndex]);
+                if (correctAnswerIndex >= 0 && currentQuestion != null && correctAnswerIndex < currentQuestion.getOptions().length) {
+                    statusLabel.setText("Wrong! The correct answer was: " + currentQuestion.getOptions()[correctAnswerIndex]);
+                } else {
+                     statusLabel.setText("Round ended.");
+                }
             }
         });
     }
@@ -139,9 +139,9 @@ public class GameGUI extends JFrame {
             displayScoreboard(finalScores);
 
             String winnerMessage;
-            if (finalScores != null && !finalScores.getPlayers().isEmpty()) {
-                var winningPlayer = finalScores.getWinningPlayer();
-                winnerMessage = String.format("Winner: %s with %d points!", winningPlayer.getUsername(), winningPlayer.getScore());
+            if (finalScores != null) {
+                String winningTeam = finalScores.getWinningTeam();
+                winnerMessage = String.format("Winning Team: %s", winningTeam);
             } else {
                 winnerMessage = "Thanks for playing!";
             }
@@ -152,129 +152,5 @@ public class GameGUI extends JFrame {
 
     public void setOnAnswerSelected(Consumer<Integer> onAnswerSelected) {
         this.onAnswerSelected = onAnswerSelected;
-    }
-
-    public static void main(String[] args) {
-        try {
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        SwingUtilities.invokeLater(() -> {
-            try {
-                showGUIDemo();
-            } catch (IOException e) {
-                JOptionPane.showMessageDialog(null,
-                        "Error starting GUI demo: " + e.getMessage(),
-                        "Demo Error",
-                        JOptionPane.ERROR_MESSAGE);
-            }
-        });
-    }
-
-    private static void showGUIDemo() throws IOException {
-        String username = JOptionPane.showInputDialog(null, "Enter your username:", "IsKahoot", JOptionPane.QUESTION_MESSAGE);
-        if (username == null || username.trim().isEmpty()) {
-            username = "Player1";
-        }
-
-        List<Question> questions = QuestionLoader.loadQuestionsFromFile("resources/questions.json");
-        if (questions.isEmpty()) {
-            JOptionPane.showMessageDialog(null, "Failed to load questions or file is empty.", "Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        GameState gameState = new GameState("DEMO", questions.size());
-        gameState.setQuestions(questions);
-        gameState.addPlayer(username);
-        gameState.startGame();
-
-        GameGUI gui = new GameGUI(username);
-        gui.setVisible(true);
-
-        startDemoGameLogic(gui, gameState, username);
-    }
-
-    private static void startDemoGameLogic(GameGUI gui, GameState gameState, String username) {
-        final boolean[] answerSubmitted = {false};
-        final Timer[] countdownTimer = {null};
-        final Timer[] timeoutTimer = {null};
-        final Question[] currentQuestionRef = {null};
-        final Runnable[] showNextQuestion = {null};
-
-        showNextQuestion[0] = () -> {
-            answerSubmitted[0] = false;
-            Question nextQ = gameState.getCurrentQuestion();
-
-            if (nextQ != null) {
-                currentQuestionRef[0] = nextQ;
-                gameState.startRound();
-                gui.displayQuestion(nextQ);
-                countdownTimer[0] = startCountdownDemo(gui, 30);
-
-                timeoutTimer[0] = new Timer(31000, e -> {
-                    if (!answerSubmitted[0]) {
-                        answerSubmitted[0] = true;
-                        if (countdownTimer[0] != null) countdownTimer[0].stop();
-                        
-                        gameState.endRound();
-                        gui.showAnswerFeedback(false, currentQuestionRef[0].getCorrect());
-                        gui.displayScoreboard(gameState.getScoreBoard());
-
-                        new Timer(3000, ev -> {
-                            if (gameState.nextQuestion()) {
-                                showNextQuestion[0].run();
-                            } else {
-                                gui.showGameEnd(gameState.getScoreBoard());
-                            }
-                        }) {{ setRepeats(false); start(); }};
-                    }
-                });
-                timeoutTimer[0].setRepeats(false);
-                timeoutTimer[0].start();
-            } else {
-                gui.showGameEnd(gameState.getScoreBoard());
-            }
-        };
-
-        gui.setOnAnswerSelected(playerAnswer -> {
-            if (!answerSubmitted[0]) {
-                answerSubmitted[0] = true;
-                if (countdownTimer[0] != null) countdownTimer[0].stop();
-                if (timeoutTimer[0] != null) timeoutTimer[0].stop();
-
-                gameState.submitAnswer(username, playerAnswer);
-                gameState.endRound();
-
-                boolean isCorrect = playerAnswer == currentQuestionRef[0].getCorrect();
-                gui.showAnswerFeedback(isCorrect, currentQuestionRef[0].getCorrect());
-                gui.displayScoreboard(gameState.getScoreBoard());
-
-                new Timer(3000, e -> {
-                    if (gameState.nextQuestion()) {
-                        showNextQuestion[0].run();
-                    } else {
-                        gui.showGameEnd(gameState.getScoreBoard());
-                    }
-                }) {{ setRepeats(false); start(); }};
-            }
-        });
-
-        showNextQuestion[0].run();
-    }
-
-    private static Timer startCountdownDemo(GameGUI gui, int startTime) {
-        final int[] timeLeft = {startTime};
-        Timer countdownTimer = new Timer(1000, e -> {
-            gui.updateTimer(timeLeft[0]);
-            if (timeLeft[0] > 0) {
-                timeLeft[0]--;
-            } else {
-                ((Timer) e.getSource()).stop();
-            }
-        });
-        countdownTimer.start();
-        return countdownTimer;
     }
 }
