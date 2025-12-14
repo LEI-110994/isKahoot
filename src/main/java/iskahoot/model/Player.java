@@ -7,12 +7,14 @@ import java.io.Serializable;
  */
 public class Player implements Serializable {
     private final String username;
+    private String teamName;
     private int score;
     private int questionsAnswered;
     private int correctAnswers;
     
     public Player(String username) {
         this.username = username;
+        this.teamName = "";
         this.score = 0;
         this.questionsAnswered = 0;
         this.correctAnswers = 0;
@@ -30,6 +32,14 @@ public class Player implements Serializable {
     // Getters and setters
     public String getUsername() {
         return username;
+    }
+    
+    public String getTeamName() {
+        return teamName;
+    }
+    
+    public void setTeamName(String teamName) {
+        this.teamName = teamName;
     }
     
     public int getScore() {
@@ -57,8 +67,8 @@ public class Player implements Serializable {
     
     @Override
     public String toString() {
-        return String.format("%s - Score: %d, Accuracy: %.1f%%", 
-                           username, score, getAccuracy());
+        return String.format("%s [%s] - Score: %d, Accuracy: %.1f%%", 
+                           username, teamName, score, getAccuracy());
     }
     
     @Override
